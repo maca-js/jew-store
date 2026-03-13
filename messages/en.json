@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "catalog": "Catalog",
+    "cart": "Cart",
+    "about": "About"
+  },
+  "home": {
+    "hero_title": "Legacy Jewelry",
+    "hero_subtitle": "Every detail — timeless",
+    "hero_cta": "View Collection",
+    "featured_title": "Featured Pieces",
+    "categories_title": "Categories"
+  },
+  "catalog": {
+    "title": "Catalog",
+    "all": "All",
+    "no_products": "No products found"
+  },
+  "product": {
+    "add_to_cart": "Add to Cart",
+    "size": "Size",
+    "choose_size": "Choose size",
+    "in_stock": "In Stock",
+    "out_of_stock": "Out of Stock",
+    "description": "Description",
+    "share": "Share"
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty",
+    "empty_cta": "Browse catalog",
+    "subtotal": "Subtotal",
+    "checkout": "Checkout",
+    "remove": "Remove",
+    "size": "Size"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "name": "Full Name",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Delivery Address",
+    "submit": "Pay Now",
+    "order_summary": "Order Summary",
+    "total": "Total"
+  },
+  "order": {
+    "success_title": "Thank you for your order!",
+    "success_text": "Your order #{id} has been placed. We'll contact you shortly.",
+    "continue_shopping": "Continue Shopping"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "currency": "UAH"
+  }
+}
