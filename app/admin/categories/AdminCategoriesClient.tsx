@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/shared/api/supabaseClient'
 import { Input } from '@/shared/ui/Input'
 import { Button } from '@/shared/ui/Button'
 import type { Category } from '@/entities/category/model/types'
@@ -21,16 +20,24 @@ export function AdminCategoriesClient({ categories }: Props) {
     e.preventDefault()
     setSaving(true)
     setError('')
-    const { error: err } = await supabase.from('categories').insert(form)
+    const res = await fetch('/api/admin/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
     setSaving(false)
-    if (err) { setError(err.message); return }
+    if (!res.ok) { const d = await res.json(); setError(d.error); return }
     setForm({ name_uk: '', name_en: '', slug: '' })
     router.refresh()
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this category?')) return
-    await supabase.from('categories').delete().eq('id', id)
+    await fetch('/api/admin/categories', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
     router.refresh()
   }
 

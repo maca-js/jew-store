@@ -87,19 +87,31 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       category_id: form.category_id || null,
     }
 
-    const { error: err } = product
-      ? await supabase.from('products').update(payload).eq('id', product.id)
-      : await supabase.from('products').insert(payload)
+    const res = product
+      ? await fetch('/api/admin/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: product.id, ...payload }),
+        })
+      : await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
 
     setSaving(false)
-    if (err) { setError(err.message); return }
+    if (!res.ok) { const d = await res.json(); setError(d.error); return }
     router.push('/admin/products')
     router.refresh()
   }
 
   async function handleDelete() {
     if (!product || !confirm('Delete this product?')) return
-    await supabase.from('products').delete().eq('id', product.id)
+    await fetch('/api/admin/products', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: product.id }),
+    })
     router.push('/admin/products')
     router.refresh()
   }
