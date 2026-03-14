@@ -10,7 +10,7 @@ interface CartPageClientProps {
 }
 
 export function CartPageClient({ locale }: CartPageClientProps) {
-  const { items, removeItem, total } = useCart()
+  const { items, removeItem, updateQuantity, total } = useCart()
 
   const t = {
     title: locale === 'uk' ? 'Кошик' : 'Cart',
@@ -60,7 +60,24 @@ export function CartPageClient({ locale }: CartPageClientProps) {
                       {t.size}: {item.size}
                     </p>
                   )}
-                  <p className="font-sans text-sm">{item.price.toLocaleString()} грн</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => updateQuantity(item.product_id, item.size, item.quantity - 1)}
+                      className="w-7 h-7 flex items-center justify-center border border-brand-border text-brand-black font-sans text-base hover:border-brand-black transition-colors"
+                    >
+                      −
+                    </button>
+                    <span className="text-sm font-sans w-4 text-center">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.product_id, item.size, item.quantity + 1)}
+                      className="w-7 h-7 flex items-center justify-center border border-brand-border text-brand-black font-sans text-base hover:border-brand-black transition-colors"
+                    >
+                      +
+                    </button>
+                    <span className="text-sm font-sans ml-2">
+                      {(item.price * item.quantity).toLocaleString()} грн
+                    </span>
+                  </div>
                   <button
                     onClick={() => removeItem(item.product_id, item.size)}
                     className="text-xs font-sans tracking-widest uppercase text-brand-muted hover:text-red-500 transition-colors"

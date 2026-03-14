@@ -1,22 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/shared/api/supabaseServer'
-import { sendTelegramMessage } from '@/shared/api/telegram'
-import type { OrderItem } from '@/entities/order/model/types'
+import type { OrderItem } from '@/entities/order/model/types';
+import { createServerSupabase } from '@/shared/api/supabaseServer';
+import { sendTelegramMessage } from '@/shared/api/telegram';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
+  const body = await request.json();
   const {
-    customer_name, email, phone,
-    delivery_service, delivery_city, delivery_branch,
+    customer_name,
+    email,
+    phone,
+    delivery_service,
+    delivery_city,
+    delivery_branch,
     payment_method,
-    items, total,
-  } = body
+    items,
+    total,
+  } = body;
 
-  if (!customer_name || !email || !phone || !items?.length) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  if (!customer_name || !phone || !items?.length) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  const supabase = createServerSupabase()
+  const supabase = createServerSupabase();
 
   const { data: order, error } = await supabase
     .from('orders')
@@ -34,28 +39,30 @@ export async function POST(request: NextRequest) {
       status: 'new',
     })
     .select()
-    .single()
+    .single();
 
   if (error || !order) {
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
 
-  const shortId = order.id.slice(0, 8)
+  console.log('items', items);
+
+  const shortId = order.id.slice(0, 8);
   const itemLines = (items as OrderItem[])
     .map((i) => `• ${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity} — ${i.price * i.quantity} грн`)
-    .join('\n')
-  const paymentLabel = (payment_method ?? 'invoice') === 'liqpay' ? 'LiqPay' : 'Рахунок-фактура'
+    .join('\n');
+  const paymentLabel = (payment_method ?? 'invoice') === 'liqpay' ? 'LiqPay' : 'Рахунок-фактура';
 
   await sendTelegramMessage(
     `🛍 <b>Нове замовлення ${shortId}</b>\n\n` +
-    `👤 ${customer_name}\n` +
-    `📞 ${phone}\n` +
-    `📧 ${email}\n` +
-    `📦 ${delivery_city}, ${delivery_branch}\n\n` +
-    `${itemLines}\n\n` +
-    `💰 Разом: <b>${total} грн</b>\n` +
-    `💳 Оплата: ${paymentLabel}`
-  )
+      `👤 ${customer_name}\n` +
+      `📞 ${phone}\n` +
+      `📧 ${email}\n` +
+      `📦 ${delivery_city}, ${delivery_branch}\n\n` +
+      `${itemLines}\n\n` +
+      `💰 Разом: <b>${total} грн</b>\n` +
+      `💳 Оплата: ${paymentLabel}`,
+  );
 
-  return NextResponse.json({ orderId: order.id })
+  return NextResponse.json({ orderId: order.id });
 }

@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { routing } from '@/shared/config/i18n'
 import { Header } from '@/widgets/header/ui/Header'
 import { Footer } from '@/widgets/footer/ui/Footer'
+import { CartProvider } from '@/entities/cart/model/cartStore'
 import '../globals.css'
 
 const inter = Inter({
@@ -45,9 +46,11 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     <html lang={locale} className={`${inter.variable} ${cormorant.variable}`}>
       <body>
         <NextIntlClientProvider messages={messages}>
-          <Header locale={locale} />
-          <main className="pt-16 min-h-screen">{children}</main>
-          <Footer locale={locale} />
+          <CartProvider>
+            <Header locale={locale} />
+            <main className="pt-16 min-h-screen">{children}</main>
+            <Footer locale={locale} />
+          </CartProvider>
         </NextIntlClientProvider>
       </body>
     </html>

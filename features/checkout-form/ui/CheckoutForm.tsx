@@ -3,24 +3,11 @@
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/shared/ui/Input'
 import { Button } from '@/shared/ui/Button'
 import { useCart } from '@/entities/cart/model/cartStore'
-
-const schema = z.object({
-  customer_name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().min(10),
-  delivery_city: z.string().min(1),
-  delivery_city_ref: z.string().min(1),
-  delivery_branch: z.string().min(1),
-  delivery_branch_ref: z.string().min(1),
-  payment_method: z.enum(['invoice', 'liqpay']),
-})
-
-type FormData = z.infer<typeof schema>
 
 interface NpOption { ref: string; label: string }
 
@@ -105,28 +92,42 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
     contact: locale === 'uk' ? 'Контактні дані' : 'Contact',
     delivery: locale === 'uk' ? 'Доставка' : 'Delivery',
     payment: locale === 'uk' ? 'Оплата' : 'Payment',
-    name: locale === 'uk' ? "Ім'я та прізвище" : 'Full name',
+    name: locale === 'uk' ? "Ім'я та прізвище *" : 'Full name *',
     email: 'Email',
-    phone: locale === 'uk' ? 'Телефон' : 'Phone',
-    city: locale === 'uk' ? 'Місто' : 'City',
+    phone: locale === 'uk' ? 'Телефон *' : 'Phone *',
+    city: locale === 'uk' ? 'Місто *' : 'City *',
     cityPh: locale === 'uk' ? 'Введіть місто...' : 'Enter city...',
-    branch: locale === 'uk' ? 'Відділення' : 'Branch',
+    branch: locale === 'uk' ? 'Відділення *' : 'Branch *',
     branchPh: locale === 'uk' ? 'Оберіть відділення...' : 'Select branch...',
     invoice: locale === 'uk' ? 'Оплата за рахунком (банківський переказ)' : 'Invoice (bank transfer)',
     liqpay: locale === 'uk' ? 'LiqPay — незабаром' : 'LiqPay — coming soon',
     submit: locale === 'uk' ? 'Оформити замовлення' : 'Place Order',
     required: locale === 'uk' ? "Обов'язкове поле" : 'Required',
+    phoneInvalid: locale === 'uk' ? 'Введіть 9 цифр (напр. 991234567)' : 'Enter 9 digits (e.g. 991234567)',
   }
+
+  const schema = useMemo(() => z.object({
+    customer_name: z.string().min(2),
+    email: z.string().email().optional().or(z.literal('')),
+    phone: z.string().regex(/^\d{9}$/, t.phoneInvalid),
+    delivery_city: z.string().min(1),
+    delivery_city_ref: z.string().min(1),
+    delivery_branch: z.string().min(1),
+    delivery_branch_ref: z.string().min(1),
+    payment_method: z.enum(['invoice', 'liqpay']),
+  }), [t.phoneInvalid])
+
+  type FormData = z.infer<typeof schema>
 
   const {
     register,
     handleSubmit,
     control,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
+    mode: 'onChange',
     defaultValues: { payment_method: 'invoice' },
   })
 
@@ -192,12 +193,19 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
       body: JSON.stringify({
         customer_name: data.customer_name,
         email: data.email,
-        phone: data.phone,
+        phone: `+380${data.phone}`,
         delivery_service: 'nova_post',
         delivery_city: data.delivery_city,
         delivery_branch: data.delivery_branch,
         payment_method: data.payment_method,
-        items,
+        items: items.map(item => ({
+          product_id: item.product_id,
+          name: locale === 'en' ? item.name_en : item.name_uk,
+          price: item.price,
+          quantity: item.quantity,
+          ...(item.size && { size: item.size }),
+          image: item.image,
+        })),
         total,
       }),
     })
@@ -217,12 +225,20 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
           error={errors.customer_name?.message}
           {...register('customer_name')}
         />
-        <Input
-          label={t.phone}
-          type="tel"
-          error={errors.phone?.message}
-          {...register('phone')}
-        />
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-sans tracking-widest uppercase text-brand-muted">{t.phone}</label>
+          <div className={`flex border transition-colors focus-within:border-brand-black ${errors.phone ? 'border-red-400' : 'border-brand-border'}`}>
+            <span className="px-4 py-3 text-sm font-sans text-brand-black bg-brand-gray border-r border-brand-border select-none">+380</span>
+            <input
+              type="tel"
+              maxLength={9}
+              placeholder="991234567"
+              className="flex-1 px-4 py-3 text-sm font-sans text-brand-black placeholder:text-brand-muted focus:outline-none bg-brand-white"
+              {...register('phone')}
+            />
+          </div>
+          {errors.phone && <p className="text-xs text-red-500 font-sans">{errors.phone.message}</p>}
+        </div>
         <Input
           label={t.email}
           type="email"
