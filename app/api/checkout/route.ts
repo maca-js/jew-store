@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/shared/api/supabaseServer'
+import { sendTelegramMessage } from '@/shared/api/telegram'
 import type { OrderItem } from '@/entities/order/model/types'
 
 export async function POST(request: NextRequest) {
@@ -38,6 +39,23 @@ export async function POST(request: NextRequest) {
   if (error || !order) {
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
   }
+
+  const shortId = order.id.slice(0, 8)
+  const itemLines = (items as OrderItem[])
+    .map((i) => `• ${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity} — ${i.price * i.quantity} грн`)
+    .join('\n')
+  const paymentLabel = (payment_method ?? 'invoice') === 'liqpay' ? 'LiqPay' : 'Рахунок-фактура'
+
+  await sendTelegramMessage(
+    `🛍 <b>Нове замовлення ${shortId}</b>\n\n` +
+    `👤 ${customer_name}\n` +
+    `📞 ${phone}\n` +
+    `📧 ${email}\n` +
+    `📦 ${delivery_city}, ${delivery_branch}\n\n` +
+    `${itemLines}\n\n` +
+    `💰 Разом: <b>${total} грн</b>\n` +
+    `💳 Оплата: ${paymentLabel}`
+  )
 
   return NextResponse.json({ orderId: order.id })
 }

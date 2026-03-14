@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyLiqPayCallback, decodeLiqPayData } from '@/shared/api/liqpay'
 import { createServerSupabase } from '@/shared/api/supabaseServer'
+import { sendTelegramMessage } from '@/shared/api/telegram'
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData()
@@ -28,6 +29,11 @@ export async function POST(request: NextRequest) {
         liqpay_order_id: payload.payment_id as string,
       })
       .eq('id', orderId)
+
+    await sendTelegramMessage(
+      `✅ <b>Оплачено замовлення ${orderId.slice(0, 8)}</b>\n` +
+      `💳 LiqPay ID: ${payload.payment_id}`
+    )
   }
 
   return NextResponse.json({ ok: true })
