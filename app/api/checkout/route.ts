@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/shared/api/supabaseServer'
-import { createLiqPayForm } from '@/shared/api/liqpay'
 import type { OrderItem } from '@/entities/order/model/types'
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { customer_name, email, phone, delivery_address, items, total, locale } = body
+  const {
+    customer_name, email, phone,
+    delivery_service, delivery_city, delivery_branch,
+    payment_method,
+    items, total,
+  } = body
 
   if (!customer_name || !email || !phone || !items?.length) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -13,14 +17,17 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabase()
 
-  // 1. Create order
   const { data: order, error } = await supabase
     .from('orders')
     .insert({
       customer_name,
       email,
       phone,
-      delivery_address,
+      delivery_address: `${delivery_city}, ${delivery_branch}`,
+      delivery_service: delivery_service ?? 'nova_post',
+      delivery_city: delivery_city ?? '',
+      delivery_branch: delivery_branch ?? '',
+      payment_method: payment_method ?? 'invoice',
       items: items as OrderItem[],
       total,
       status: 'new',
@@ -32,15 +39,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
   }
 
-  // 2. Generate LiqPay form data
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? request.nextUrl.origin
-  const { data, signature } = createLiqPayForm({
-    orderId: order.id,
-    amount: total,
-    description: `Legacy order #${order.id.slice(0, 8)}`,
-    resultUrl: `${baseUrl}/${locale}/order/${order.id}`,
-    serverUrl: `${baseUrl}/api/liqpay/callback`,
-  })
-
-  return NextResponse.json({ data, signature })
+  return NextResponse.json({ orderId: order.id })
 }

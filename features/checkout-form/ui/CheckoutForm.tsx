@@ -1,107 +1,317 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Input } from '@/shared/ui/Input'
 import { Button } from '@/shared/ui/Button'
 import { useCart } from '@/entities/cart/model/cartStore'
-import { useTranslations } from 'next-intl'
-import { useRef } from 'react'
 
 const schema = z.object({
   customer_name: z.string().min(2),
   email: z.string().email(),
   phone: z.string().min(10),
-  delivery_address: z.string().min(5),
+  delivery_city: z.string().min(1),
+  delivery_city_ref: z.string().min(1),
+  delivery_branch: z.string().min(1),
+  delivery_branch_ref: z.string().min(1),
+  payment_method: z.enum(['invoice', 'liqpay']),
 })
 
 type FormData = z.infer<typeof schema>
+
+interface NpOption { ref: string; label: string }
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
+}
+
+interface AutocompleteProps {
+  label: string
+  placeholder: string
+  options: NpOption[]
+  loading: boolean
+  value: string
+  onChange: (label: string) => void
+  onSelect: (opt: NpOption) => void
+  disabled?: boolean
+  error?: string
+}
+
+function Autocomplete({ label, placeholder, options, loading, value, onChange, onSelect, disabled, error }: AutocompleteProps) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative flex flex-col gap-1">
+      <label className="text-xs font-sans tracking-widest uppercase text-brand-muted">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true) }}
+        onFocus={() => options.length > 0 && setOpen(true)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={`border px-4 py-3 text-sm font-sans focus:outline-none transition-colors ${
+          error ? 'border-red-400' : 'border-brand-border focus:border-brand-black'
+        } ${disabled ? 'bg-brand-gray text-brand-muted cursor-not-allowed' : ''}`}
+      />
+      {error && <p className="text-xs text-red-500 font-sans">{error}</p>}
+      {open && (loading || options.length > 0) && (
+        <div className="absolute top-full left-0 right-0 z-50 bg-white border border-brand-border shadow-lg max-h-56 overflow-auto">
+          {loading && (
+            <div className="px-4 py-3 text-xs font-sans text-brand-muted">Пошук...</div>
+          )}
+          {options.map((opt) => (
+            <button
+              key={opt.ref}
+              type="button"
+              onClick={() => { onSelect(opt); setOpen(false) }}
+              className="w-full text-left px-4 py-3 text-sm font-sans hover:bg-brand-gray transition-colors border-b border-brand-gray last:border-0"
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface CheckoutFormProps {
   locale: string
 }
 
 export function CheckoutForm({ locale }: CheckoutFormProps) {
-  const t = useTranslations('checkout')
+  const router = useRouter()
   const { items, total, clearCart } = useCart()
-  const liqpayFormRef = useRef<HTMLFormElement>(null)
+
+  const t = {
+    contact: locale === 'uk' ? 'Контактні дані' : 'Contact',
+    delivery: locale === 'uk' ? 'Доставка' : 'Delivery',
+    payment: locale === 'uk' ? 'Оплата' : 'Payment',
+    name: locale === 'uk' ? "Ім'я та прізвище" : 'Full name',
+    email: 'Email',
+    phone: locale === 'uk' ? 'Телефон' : 'Phone',
+    city: locale === 'uk' ? 'Місто' : 'City',
+    cityPh: locale === 'uk' ? 'Введіть місто...' : 'Enter city...',
+    branch: locale === 'uk' ? 'Відділення' : 'Branch',
+    branchPh: locale === 'uk' ? 'Оберіть відділення...' : 'Select branch...',
+    invoice: locale === 'uk' ? 'Оплата за рахунком (банківський переказ)' : 'Invoice (bank transfer)',
+    liqpay: locale === 'uk' ? 'LiqPay — незабаром' : 'LiqPay — coming soon',
+    submit: locale === 'uk' ? 'Оформити замовлення' : 'Place Order',
+    required: locale === 'uk' ? "Обов'язкове поле" : 'Required',
+  }
 
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema) })
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { payment_method: 'invoice' },
+  })
+
+  // Nova Post city autocomplete
+  const [cityInput, setCityInput] = useState('')
+  const [cityOptions, setCityOptions] = useState<NpOption[]>([])
+  const [cityLoading, setCityLoading] = useState(false)
+  const debouncedCity = useDebounce(cityInput, 350)
+
+  const fetchCities = useCallback(async (q: string) => {
+    if (q.length < 2) { setCityOptions([]); return }
+    setCityLoading(true)
+    try {
+      const res = await fetch(`/api/nova-post?action=cities&q=${encodeURIComponent(q)}`)
+      const data = await res.json()
+      setCityOptions(data)
+    } finally {
+      setCityLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchCities(debouncedCity) }, [debouncedCity, fetchCities])
+
+  // Nova Post branch autocomplete
+  const [branchInput, setBranchInput] = useState('')
+  const [branchOptions, setBranchOptions] = useState<NpOption[]>([])
+  const [branchLoading, setBranchLoading] = useState(false)
+  const [selectedCityRef, setSelectedCityRef] = useState('')
+
+  const fetchBranches = useCallback(async (cityRef: string) => {
+    if (!cityRef) return
+    setBranchLoading(true)
+    try {
+      const res = await fetch(`/api/nova-post?action=branches&cityRef=${cityRef}`)
+      const data = await res.json()
+      setBranchOptions(Array.isArray(data) ? data : [])
+    } finally {
+      setBranchLoading(false)
+    }
+  }, [])
+
+  function handleCitySelect(opt: NpOption) {
+    setCityInput(opt.label)
+    setValue('delivery_city', opt.label, { shouldValidate: true })
+    setValue('delivery_city_ref', opt.ref, { shouldValidate: true })
+    setSelectedCityRef(opt.ref)
+    setBranchInput('')
+    setValue('delivery_branch', '', { shouldValidate: false })
+    setValue('delivery_branch_ref', '', { shouldValidate: false })
+    fetchBranches(opt.ref)
+  }
+
+  function handleBranchSelect(opt: NpOption) {
+    setBranchInput(opt.label)
+    setValue('delivery_branch', opt.label, { shouldValidate: true })
+    setValue('delivery_branch_ref', opt.ref, { shouldValidate: true })
+  }
 
   async function onSubmit(data: FormData) {
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...data,
+        customer_name: data.customer_name,
+        email: data.email,
+        phone: data.phone,
+        delivery_service: 'nova_post',
+        delivery_city: data.delivery_city,
+        delivery_branch: data.delivery_branch,
+        payment_method: data.payment_method,
         items,
         total,
-        locale,
       }),
     })
-
     if (!res.ok) return
-
-    const { data: liqpayData, signature } = await res.json()
-
-    // Inject values and submit hidden LiqPay form
-    const form = liqpayFormRef.current!
-    ;(form.querySelector('[name=data]') as HTMLInputElement).value = liqpayData
-    ;(form.querySelector('[name=signature]') as HTMLInputElement).value = signature
+    const { orderId } = await res.json()
     clearCart()
-    form.submit()
+    router.push(`/${locale}/order/${orderId}`)
   }
 
   return (
-    <>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      {/* Section 1: Contact */}
+      <div className="space-y-4">
+        <h2 className="text-xs font-sans tracking-widest uppercase text-brand-muted">{t.contact}</h2>
         <Input
-          label={t('name')}
+          label={t.name}
           error={errors.customer_name?.message}
           {...register('customer_name')}
         />
         <Input
-          label={t('email')}
-          type="email"
-          error={errors.email?.message}
-          {...register('email')}
-        />
-        <Input
-          label={t('phone')}
+          label={t.phone}
           type="tel"
           error={errors.phone?.message}
           {...register('phone')}
         />
         <Input
-          label={t('address')}
-          error={errors.delivery_address?.message}
-          {...register('delivery_address')}
+          label={t.email}
+          type="email"
+          error={errors.email?.message}
+          {...register('email')}
+        />
+      </div>
+
+      {/* Section 2: Delivery */}
+      <div className="space-y-4">
+        <h2 className="text-xs font-sans tracking-widest uppercase text-brand-muted">{t.delivery}</h2>
+
+        {/* Delivery service — Nova Post only for now */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-sans tracking-widest uppercase text-brand-muted">
+            {locale === 'uk' ? 'Служба доставки' : 'Delivery service'}
+          </label>
+          <select
+            disabled
+            className="border border-brand-border px-4 py-3 text-sm font-sans bg-brand-gray text-brand-muted cursor-not-allowed"
+          >
+            <option>Nova Post</option>
+          </select>
+        </div>
+
+        {/* Hidden fields for refs */}
+        <input type="hidden" {...register('delivery_city_ref')} />
+        <input type="hidden" {...register('delivery_branch_ref')} />
+
+        <Autocomplete
+          label={t.city}
+          placeholder={t.cityPh}
+          options={cityOptions}
+          loading={cityLoading}
+          value={cityInput}
+          onChange={(v) => { setCityInput(v); setValue('delivery_city', '', { shouldValidate: false }); setValue('delivery_city_ref', '') }}
+          onSelect={handleCitySelect}
+          error={errors.delivery_city?.message || errors.delivery_city_ref?.message ? t.required : undefined}
         />
 
-        <div className="pt-4 border-t border-brand-border flex items-center justify-between">
-          <span className="font-serif text-lg">{total.toLocaleString()} грн</span>
-          <Button type="submit" size="lg" disabled={isSubmitting || items.length === 0}>
-            {isSubmitting ? '...' : t('submit')}
-          </Button>
-        </div>
-      </form>
+        <Autocomplete
+          label={t.branch}
+          placeholder={!selectedCityRef ? (locale === 'uk' ? 'Спочатку оберіть місто' : 'Select city first') : t.branchPh}
+          options={branchInput ? branchOptions.filter(o => o.label.toLowerCase().includes(branchInput.toLowerCase())) : branchOptions}
+          loading={branchLoading}
+          value={branchInput}
+          onChange={(v) => { setBranchInput(v); setValue('delivery_branch', '', { shouldValidate: false }); setValue('delivery_branch_ref', '') }}
+          onSelect={handleBranchSelect}
+          disabled={!selectedCityRef}
+          error={errors.delivery_branch?.message || errors.delivery_branch_ref?.message ? t.required : undefined}
+        />
+      </div>
 
-      {/* Hidden LiqPay form — auto-submitted after order creation */}
-      <form
-        ref={liqpayFormRef}
-        method="POST"
-        action="https://www.liqpay.ua/api/3/checkout"
-        acceptCharset="utf-8"
-        style={{ display: 'none' }}
-      >
-        <input type="hidden" name="data" />
-        <input type="hidden" name="signature" />
-      </form>
-    </>
+      {/* Section 3: Payment */}
+      <div className="space-y-4">
+        <h2 className="text-xs font-sans tracking-widest uppercase text-brand-muted">{t.payment}</h2>
+        <Controller
+          name="payment_method"
+          control={control}
+          render={({ field }) => (
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                  field.value === 'invoice' ? 'border-brand-black' : 'border-brand-border group-hover:border-brand-muted'
+                }`}>
+                  {field.value === 'invoice' && <div className="w-2 h-2 rounded-full bg-brand-black" />}
+                </div>
+                <input type="radio" value="invoice" checked={field.value === 'invoice'} onChange={() => field.onChange('invoice')} className="sr-only" />
+                <span className="text-sm font-sans">{t.invoice}</span>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-not-allowed opacity-40">
+                <div className="w-4 h-4 rounded-full border-2 border-brand-border" />
+                <input type="radio" value="liqpay" disabled className="sr-only" />
+                <span className="text-sm font-sans">{t.liqpay}</span>
+                <span className="text-xs font-sans px-2 py-0.5 bg-brand-gray text-brand-muted">
+                  {locale === 'uk' ? 'Скоро' : 'Soon'}
+                </span>
+              </label>
+            </div>
+          )}
+        />
+      </div>
+
+      <div className="pt-4 border-t border-brand-border">
+        <Button type="submit" size="lg" disabled={isSubmitting || items.length === 0} className="w-full">
+          {isSubmitting ? '...' : t.submit}
+        </Button>
+      </div>
+    </form>
   )
 }
