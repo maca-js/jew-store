@@ -1,4 +1,4 @@
-app = "legacy-jew"
+app = "jew-store"
 primary_region = "waw"
 
 [build]
