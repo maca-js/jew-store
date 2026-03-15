@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/shared/api/supabaseClient'
 import { Input } from '@/shared/ui/Input'
 import { Textarea } from '@/shared/ui/Textarea'
 import { Button } from '@/shared/ui/Button'
@@ -55,15 +54,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     const urls: string[] = []
 
     for (const file of Array.from(files)) {
-      const ext = file.name.split('.').pop()
-      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(path, file, { upsert: true })
-
-      if (!uploadError) {
-        const { data } = supabase.storage.from('product-images').getPublicUrl(path)
-        urls.push(data.publicUrl)
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: formData })
+      if (res.ok) {
+        const { url } = await res.json()
+        urls.push(url)
       }
     }
 

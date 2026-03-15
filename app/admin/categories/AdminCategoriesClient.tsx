@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Input } from '@/shared/ui/Input'
 import { Button } from '@/shared/ui/Button'
-import { supabase } from '@/shared/api/supabaseClient'
 import type { Category } from '@/entities/category/model/types'
 
 interface Props {
@@ -13,10 +12,11 @@ interface Props {
 }
 
 async function uploadCategoryImage(file: File): Promise<string> {
-  const path = `categories/${Date.now()}-${file.name}`
-  await supabase.storage.from('product-images').upload(path, file)
-  const { data } = supabase.storage.from('product-images').getPublicUrl(path)
-  return data.publicUrl
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch('/api/admin/upload', { method: 'POST', body: formData })
+  const { url } = await res.json()
+  return url
 }
 
 export function AdminCategoriesClient({ categories }: Props) {
