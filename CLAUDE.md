@@ -49,7 +49,11 @@ Two clients — never mix them:
 - **`shared/api/supabaseClient.ts`** — anon key, browser-safe, used for public reads and storage uploads
 - **`shared/api/supabaseServer.ts`** — service role key (`createServerSupabase()`), server-only, used in API routes for admin writes
 
-Admin CRUD routes (`app/api/admin/categories/route.ts`, `app/api/admin/products/route.ts`) use the service role client to bypass RLS. Client components call these API routes via `fetch()` — they do not call Supabase directly for writes.
+Admin CRUD routes use the service role client to bypass RLS. Client components call these API routes via `fetch()` — they do not call Supabase directly for writes:
+- `app/api/admin/categories/route.ts` — GET, POST, PUT, DELETE
+- `app/api/admin/products/route.ts` — GET, POST, PUT, DELETE
+- `app/api/admin/orders/route.ts` — PUT (status/tracking/notes), DELETE
+- `app/api/admin/upload/route.ts` — POST multipart → uploads to Cloudflare R2, returns public URL
 
 RLS policies (from `supabase/migration.sql`):
 - Public SELECT on `categories` and `products`
@@ -95,7 +99,9 @@ Required in `.env.local`:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `LIQPAY_PUBLIC_KEY`, `LIQPAY_PRIVATE_KEY`
 - `ADMIN_SECRET` — admin panel password and cookie value
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` — Cloudflare R2 for image uploads
+- `NEXT_PUBLIC_R2_PUBLIC_URL` — public base URL for R2 objects (e.g. `https://pub-xxx.r2.dev`)
 
 ## Database
 
-Schema in `supabase/migration.sql`. Tables: `categories`, `products`, `orders`. Storage bucket: `product-images` (public). Run migration in Supabase Dashboard → SQL Editor before first use.
+Schema in `supabase/migration.sql`. Tables: `categories`, `products`, `orders`. Run migration in Supabase Dashboard → SQL Editor before first use. Product images are stored in Cloudflare R2.
