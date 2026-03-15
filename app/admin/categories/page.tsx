@@ -3,6 +3,8 @@ import type { Category } from '@/entities/category/model/types'
 import Link from 'next/link'
 import { AdminCategoriesClient } from './AdminCategoriesClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminCategoriesPage() {
   const supabase = createServerSupabase()
   const { data: categories } = await supabase

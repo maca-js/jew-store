@@ -1,5 +1,7 @@
 import { createServerSupabase } from '@/shared/api/supabaseServer'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminDashboard() {
   const supabase = createServerSupabase()
 

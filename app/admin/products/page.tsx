@@ -3,6 +3,8 @@ import type { Product } from '@/entities/product/model/types'
 import Link from 'next/link'
 import Image from 'next/image'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminProductsPage() {
   const supabase = createServerSupabase()
   const { data: products } = await supabase

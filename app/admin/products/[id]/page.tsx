@@ -4,6 +4,8 @@ import type { Category } from '@/entities/category/model/types'
 import type { Product } from '@/entities/product/model/types'
 import { ProductForm } from '@/features/admin-product-form/ui/ProductForm'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: Promise<{ id: string }>
 }

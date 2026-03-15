@@ -2,6 +2,8 @@ import { createServerSupabase } from '@/shared/api/supabaseServer'
 import { OrderRow } from '@/entities/order/ui/OrderRow'
 import type { Order } from '@/entities/order/model/types'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminOrdersPage() {
   const supabase = createServerSupabase()
   const { data: orders } = await supabase

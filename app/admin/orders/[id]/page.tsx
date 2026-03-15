@@ -5,6 +5,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { AdminOrderDetailClient } from './AdminOrderDetailClient'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: Promise<{ id: string }>
 }
