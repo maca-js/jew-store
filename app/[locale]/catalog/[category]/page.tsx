@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getProducts } from '@/entities/product/api/productApi'
 import { getCategories, getCategoryBySlug } from '@/entities/category/api/categoryApi'
 import { ProductGrid } from '@/widgets/product-grid/ui/ProductGrid'
 import { CategoryFilter } from '@/features/product-filter/ui/CategoryFilter'
@@ -8,12 +7,6 @@ import { supabase } from '@/shared/api/supabaseClient'
 
 interface PageProps {
   params: Promise<{ locale: string; category: string }>
-}
-
-export async function generateStaticParams() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL?.startsWith('http')) return []
-  const { data } = await supabase.from('categories').select('slug')
-  return (data ?? []).map((c) => ({ category: c.slug }))
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

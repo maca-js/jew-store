@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import {
   getProductBySlug,
-  getAllProductSlugs,
 } from '@/entities/product/api/productApi'
 import { ProductGallery } from '@/widgets/product-gallery/ui/ProductGallery'
 import { ProductPageClient } from './ProductPageClient'
@@ -10,12 +9,6 @@ import { Badge } from '@/shared/ui/Badge'
 
 interface PageProps {
   params: Promise<{ locale: string; slug: string }>
-}
-
-export async function generateStaticParams() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL?.startsWith('http')) return []
-  const slugs = await getAllProductSlugs()
-  return slugs.map((slug) => ({ slug }))
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
