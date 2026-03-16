@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/shared/api/supabaseServer'
+import { verifyAdminToken } from '@/shared/lib/adminAuth'
 
-function isAdmin(request: NextRequest) {
-  return request.cookies.get('admin_token')?.value === process.env.ADMIN_SECRET
+async function isAdmin(request: NextRequest) {
+  return verifyAdminToken(request.cookies.get('admin_token')?.value ?? '', process.env.ADMIN_SECRET!)
 }
 
 export async function PUT(request: NextRequest) {
-  if (!isAdmin(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isAdmin(request))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id, ...updates } = await request.json()
   const allowed = ['status', 'tracking_number', 'admin_notes']
@@ -22,7 +23,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isAdmin(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isAdmin(request))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await request.json()
   const db = createServerSupabase()

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { cookies } from 'next/headers'
+import { verifyAdminToken } from '@/shared/lib/adminAuth'
 
 const r2 = new S3Client({
   region: 'auto',
@@ -13,7 +14,7 @@ const r2 = new S3Client({
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies()
-  if (cookieStore.get('admin_token')?.value !== process.env.ADMIN_SECRET) {
+  if (!(await verifyAdminToken(cookieStore.get('admin_token')?.value ?? '', process.env.ADMIN_SECRET!))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

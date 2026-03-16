@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createAdminToken } from '@/shared/lib/adminAuth'
 
 export async function POST(request: NextRequest) {
   const { password } = await request.json()
@@ -7,8 +8,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
   }
 
+  const token = await createAdminToken(process.env.ADMIN_SECRET!)
   const response = NextResponse.json({ ok: true })
-  response.cookies.set('admin_token', process.env.ADMIN_SECRET!, {
+  response.cookies.set('admin_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
