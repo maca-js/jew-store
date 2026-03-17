@@ -76,6 +76,14 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             <p className="text-xs font-sans tracking-widest uppercase text-brand-muted mb-1">Payment</p>
             <p>{paymentLabel[o.payment_method] ?? o.payment_method}</p>
           </div>
+          <div>
+            <p className="text-xs font-sans tracking-widest uppercase text-brand-muted mb-1">Source</p>
+            <span className={`text-xs px-2 py-1 font-sans ${
+              o.source === 'instagram' ? 'bg-pink-100 text-pink-700' : 'bg-brand-gray text-brand-muted'
+            }`}>
+              {o.source === 'instagram' ? 'Instagram' : 'Website'}
+            </span>
+          </div>
           {o.tracking_number && (
             <div className="col-span-2">
               <p className="text-xs font-sans tracking-widest uppercase text-brand-muted mb-1">Tracking (TTN)</p>

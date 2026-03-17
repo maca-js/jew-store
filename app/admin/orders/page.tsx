@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createServerSupabase } from '@/shared/api/supabaseServer'
 import { OrderRow } from '@/entities/order/ui/OrderRow'
 import type { Order } from '@/entities/order/model/types'
@@ -13,7 +14,15 @@ export default async function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-3xl text-brand-black">Orders</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-serif text-3xl text-brand-black">Orders</h1>
+        <Link
+          href="/admin/orders/new"
+          className="text-xs font-sans tracking-widest uppercase border border-brand-black px-4 py-2 hover:bg-brand-black hover:text-white transition-colors"
+        >
+          + New Order
+        </Link>
+      </div>
       <div className="bg-brand-white overflow-auto">
         <table className="w-full text-sm">
           <thead>
@@ -25,7 +34,7 @@ export default async function AdminOrdersPage() {
                 Customer
               </th>
               <th className="px-4 py-3 text-left text-xs font-sans tracking-widest uppercase text-brand-muted">
-                Email
+                Source
               </th>
               <th className="px-4 py-3 text-left text-xs font-sans tracking-widest uppercase text-brand-muted">
                 Total

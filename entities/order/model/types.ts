@@ -1,5 +1,6 @@
 export type OrderStatus = 'new' | 'paid' | 'processing' | 'shipped' | 'delivered'
 export type PaymentMethod = 'invoice' | 'liqpay'
+export type OrderSource = 'website' | 'instagram'
 
 export interface OrderItem {
   product_id: string
@@ -26,5 +27,6 @@ export interface Order {
   liqpay_order_id: string | null
   tracking_number: string | null
   admin_notes: string | null
+  source: OrderSource
   created_at: string
 }

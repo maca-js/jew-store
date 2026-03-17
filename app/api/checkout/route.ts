@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       items: items as OrderItem[],
       total,
       status: 'new',
+      source: 'website',
     })
     .select()
     .single();

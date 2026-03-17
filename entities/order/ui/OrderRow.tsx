@@ -30,7 +30,13 @@ export function OrderRow({ order }: OrderRowProps) {
         </Link>
       </td>
       <td className="px-4 py-3 text-sm">{order.customer_name}</td>
-      <td className="px-4 py-3 text-sm">{order.email}</td>
+      <td className="px-4 py-3">
+        <span className={`text-xs px-2 py-1 font-sans ${
+          order.source === 'instagram' ? 'bg-pink-100 text-pink-700' : 'bg-brand-gray text-brand-muted'
+        }`}>
+          {order.source === 'instagram' ? 'Instagram' : 'Website'}
+        </span>
+      </td>
       <td className="px-4 py-3 text-sm font-sans">
         {order.total.toLocaleString()} грн
       </td>

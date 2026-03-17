@@ -1,16 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/shared/api/supabaseServer'
 import { verifyAdminToken } from '@/shared/lib/adminAuth'
+import { sendTelegramMessage } from '@/shared/api/telegram'
+import type { OrderItem } from '@/entities/order/model/types'
 
 async function isAdmin(request: NextRequest) {
   return verifyAdminToken(request.cookies.get('admin_token')?.value ?? '', process.env.ADMIN_SECRET!)
+}
+
+export async function POST(request: NextRequest) {
+  if (!(await isAdmin(request))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await request.json()
+  const {
+    customer_name, email, phone,
+    delivery_city, delivery_branch,
+    items, total, status, payment_method, admin_notes, source,
+  } = body
+
+  if (!customer_name || !phone || !items?.length) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  const db = createServerSupabase()
+  const { data: order, error } = await db
+    .from('orders')
+    .insert({
+      customer_name,
+      email: email ?? '',
+      phone,
+      delivery_address: `${delivery_city ?? ''}, ${delivery_branch ?? ''}`,
+      delivery_service: 'nova_post',
+      delivery_city: delivery_city ?? '',
+      delivery_branch: delivery_branch ?? '',
+      payment_method: payment_method ?? 'invoice',
+      items: items as OrderItem[],
+      total,
+      status: status ?? 'new',
+      admin_notes: admin_notes ?? null,
+      source: source ?? 'instagram',
+    })
+    .select()
+    .single()
+
+  if (error || !order) {
+    return NextResponse.json({ error: error?.message ?? 'Failed to create order' }, { status: 500 })
+  }
+
+  const shortId = order.id.slice(0, 8)
+  const itemLines = (items as OrderItem[])
+    .map((i) => `• ${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity} — ${i.price * i.quantity} грн`)
+    .join('\n')
+  const paymentLabel = (payment_method ?? 'invoice') === 'liqpay' ? 'LiqPay' : 'Рахунок-фактура'
+
+  await sendTelegramMessage(
+    `🛍 <b>Нове замовлення ${shortId} (адмін)</b>\n\n` +
+      `👤 ${customer_name}\n` +
+      `📞 ${phone}\n` +
+      `📧 ${email ?? '—'}\n` +
+      `📦 ${delivery_city ?? '—'}, ${delivery_branch ?? '—'}\n\n` +
+      `${itemLines}\n\n` +
+      `💰 Разом: <b>${total} грн</b>\n` +
+      `💳 Оплата: ${paymentLabel}`,
+  )
+
+  return NextResponse.json({ ok: true, id: order.id })
 }
 
 export async function PUT(request: NextRequest) {
   if (!(await isAdmin(request))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id, ...updates } = await request.json()
-  const allowed = ['status', 'tracking_number', 'admin_notes']
+  const allowed = ['status', 'tracking_number', 'admin_notes', 'source']
   const patch = Object.fromEntries(
     Object.entries(updates).filter(([k]) => allowed.includes(k))
   )
