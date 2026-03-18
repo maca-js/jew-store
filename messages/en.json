@@ -45,8 +45,21 @@
     "total": "Total"
   },
   "order": {
-    "success_title": "Thank you for your order!",
-    "success_text": "Your order #{id} has been placed. We'll contact you shortly.",
+    "title": "Thank you for your order!",
+    "order_id": "Order",
+    "items": "Items",
+    "size": "Size",
+    "total": "Total",
+    "delivery": "Delivery",
+    "nova_post": "Nova Post",
+    "payment": "Payment",
+    "invoice_title": "Invoice Payment",
+    "invoice_instructions": "Please make a bank transfer to the account below. Include the order number in the payment reference.",
+    "cod_title": "Cash on Delivery (prepayment)",
+    "cod_instructions": "After order confirmation we will contact you about the prepayment details. You will pay the remaining amount upon pickup at the Nova Post branch.",
+    "iban": "IBAN",
+    "payment_reference": "Payment reference",
+    "amount": "Amount",
     "continue_shopping": "Continue Shopping"
   },
   "common": {
