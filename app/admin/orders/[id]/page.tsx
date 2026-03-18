@@ -22,6 +22,7 @@ const statusLabel: Record<Order['status'], string> = {
 const paymentLabel: Record<string, string> = {
   invoice: 'Invoice (bank transfer)',
   liqpay: 'LiqPay',
+  cod: 'Накладний платіж (передплата)',
 }
 
 export default async function AdminOrderDetailPage({ params }: PageProps) {

@@ -459,6 +459,7 @@ export function AdminCreateOrderClient() {
             className="border border-brand-border px-4 py-3 text-sm font-sans focus:outline-none focus:border-brand-black"
           >
             <option value="invoice">Invoice (bank transfer)</option>
+            <option value="cod">Накладний платіж (передплата)</option>
             <option value="liqpay">LiqPay</option>
           </select>
         </div>

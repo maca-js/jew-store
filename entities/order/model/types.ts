@@ -1,5 +1,5 @@
 export type OrderStatus = 'new' | 'paid' | 'processing' | 'shipped' | 'delivered'
-export type PaymentMethod = 'invoice' | 'liqpay'
+export type PaymentMethod = 'invoice' | 'liqpay' | 'cod'
 export type OrderSource = 'website' | 'instagram'
 
 export interface OrderItem {

@@ -100,7 +100,8 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
     branch: locale === 'uk' ? 'Відділення *' : 'Branch *',
     branchPh: locale === 'uk' ? 'Оберіть відділення...' : 'Select branch...',
     invoice: locale === 'uk' ? 'Оплата за рахунком (банківський переказ)' : 'Invoice (bank transfer)',
-    liqpay: locale === 'uk' ? 'LiqPay — незабаром' : 'LiqPay — coming soon',
+    cod: locale === 'uk' ? 'Накладний платіж (передплата)' : 'Cash on delivery (prepayment)',
+    liqpay: locale === 'uk' ? 'LiqPay' : 'LiqPay',
     submit: locale === 'uk' ? 'Оформити замовлення' : 'Place Order',
     required: locale === 'uk' ? "Обов'язкове поле" : 'Required',
     phoneInvalid: locale === 'uk' ? 'Введіть 9 цифр (напр. 991234567)' : 'Enter 9 digits (e.g. 991234567)',
@@ -114,7 +115,7 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
     delivery_city_ref: z.string().min(1),
     delivery_branch: z.string().min(1),
     delivery_branch_ref: z.string().min(1),
-    payment_method: z.enum(['invoice', 'liqpay']),
+    payment_method: z.enum(['invoice', 'cod', 'liqpay']),
   }), [t.phoneInvalid])
 
   type FormData = z.infer<typeof schema>
@@ -132,6 +133,8 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
   })
 
   // Nova Post city autocomplete
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
   const [cityInput, setCityInput] = useState('')
   const [cityOptions, setCityOptions] = useState<NpOption[]>([])
   const [cityLoading, setCityLoading] = useState(false)
@@ -187,6 +190,7 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
   }
 
   async function onSubmit(data: FormData) {
+    setSubmitError(null)
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -209,7 +213,10 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
         total,
       }),
     })
-    if (!res.ok) return
+    if (!res.ok) {
+      setSubmitError(locale === 'uk' ? 'Помилка при оформленні замовлення. Спробуйте ще раз.' : 'Failed to place order. Please try again.')
+      return
+    }
     const { orderId } = await res.json()
     clearCart()
     router.push(`/${locale}/order/${orderId}`)
@@ -310,6 +317,16 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                 <span className="text-sm font-sans">{t.invoice}</span>
               </label>
 
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                  field.value === 'cod' ? 'border-brand-black' : 'border-brand-border group-hover:border-brand-muted'
+                }`}>
+                  {field.value === 'cod' && <div className="w-2 h-2 rounded-full bg-brand-black" />}
+                </div>
+                <input type="radio" value="cod" checked={field.value === 'cod'} onChange={() => field.onChange('cod')} className="sr-only" />
+                <span className="text-sm font-sans">{t.cod}</span>
+              </label>
+
               <label className="flex items-center gap-3 cursor-not-allowed opacity-40">
                 <div className="w-4 h-4 rounded-full border-2 border-brand-border" />
                 <input type="radio" value="liqpay" disabled className="sr-only" />
@@ -323,7 +340,10 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
         />
       </div>
 
-      <div className="pt-4 border-t border-brand-border">
+      <div className="pt-4 border-t border-brand-border space-y-3">
+        {submitError && (
+          <p className="text-sm text-red-500 font-sans">{submitError}</p>
+        )}
         <Button type="submit" size="lg" disabled={isSubmitting || items.length === 0} className="w-full">
           {isSubmitting ? '...' : t.submit}
         </Button>

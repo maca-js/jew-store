@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
   const itemLines = (items as OrderItem[])
     .map((i) => `• ${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity} — ${i.price * i.quantity} грн`)
     .join('\n');
-  const paymentLabel = (payment_method ?? 'invoice') === 'liqpay' ? 'LiqPay' : 'Рахунок-фактура';
+  const paymentLabels: Record<string, string> = { invoice: 'Рахунок-фактура', liqpay: 'LiqPay', cod: 'Накладний платіж (передплата)' }
+  const paymentLabel = paymentLabels[payment_method ?? 'invoice'] ?? payment_method;
 
   await sendTelegramMessage(
     `🛍 <b>Нове замовлення ${shortId}</b>\n\n` +
