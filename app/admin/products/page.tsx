@@ -52,7 +52,7 @@ export default async function AdminProductsPage() {
                   <td className="px-4 py-3">{p.price.toLocaleString()} грн</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs ${p.in_stock ? 'text-green-600' : 'text-red-500'}`}>
-                      {p.in_stock ? 'In stock' : 'Out'}
+                      {p.stock != null ? p.stock : '∞'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-brand-muted">{p.badge ?? '—'}</td>

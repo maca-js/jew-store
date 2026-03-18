@@ -14,6 +14,7 @@ export interface Product {
   is_featured: boolean
   slug: string
   in_stock: boolean
+  stock: number | null
   created_at: string
   category?: Category
 }

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const db = createServerSupabase()
   let query = db
     .from('products')
-    .select('id, name_uk, name_en, price, images, available_sizes, in_stock')
+    .select('id, name_uk, name_en, price, images, available_sizes, in_stock, stock')
     .order('name_uk')
     .limit(20)
   if (search.length >= 2) {

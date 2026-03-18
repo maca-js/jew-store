@@ -46,6 +46,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
 
+  for (const item of items as OrderItem[]) {
+    if (!item.product_id) continue;
+    const { error: rpcError } = await supabase.rpc('decrement_stock', {
+      p_product_id: item.product_id,
+      p_quantity: item.quantity,
+    });
+    if (rpcError) console.error('decrement_stock error:', rpcError.message);
+  }
+
   console.log('items', items);
 
   const shortId = order.order_number;

@@ -32,6 +32,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     badge: (product?.badge ?? '') as BadgeType | '',
     is_featured: product?.is_featured ?? false,
     in_stock: product?.in_stock ?? true,
+    stock: product?.stock?.toString() ?? '',
     available_sizes: product?.available_sizes ?? [] as string[],
     images: product?.images ?? [] as string[],
   })
@@ -81,6 +82,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       price: parseFloat(form.price),
       badge: form.badge || null,
       category_id: form.category_id || null,
+      stock: form.stock === '' ? null : parseInt(form.stock, 10),
     }
 
     const res = product
@@ -181,7 +183,16 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             </select>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
+          <Input
+            label="Stock"
+            type="number"
+            min="0"
+            step="1"
+            value={form.stock}
+            onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+            placeholder="Unlimited"
+          />
           <div className="flex flex-col gap-1">
             <label className="text-xs font-sans tracking-widest uppercase text-brand-muted">Badge</label>
             <select

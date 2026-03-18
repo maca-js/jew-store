@@ -47,6 +47,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error?.message ?? 'Failed to create order' }, { status: 500 })
   }
 
+  for (const item of items as OrderItem[]) {
+    if (!item.product_id) continue
+    const { error: rpcError } = await db.rpc('decrement_stock', {
+      p_product_id: item.product_id,
+      p_quantity: item.quantity,
+    })
+    if (rpcError) console.error('decrement_stock error:', rpcError.message)
+  }
+
   const shortId = order.order_number
   const itemLines = (items as OrderItem[])
     .map((i) => `• ${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity} — ${i.price * i.quantity} грн`)
