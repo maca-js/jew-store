@@ -26,7 +26,7 @@ export function OrderRow({ order }: OrderRowProps) {
     <tr className="border-b border-brand-gray-dark hover:bg-brand-gray transition-colors">
       <td className="px-4 py-3 text-xs font-mono text-brand-muted">
         <Link href={`/admin/orders/${order.id}`} className="hover:text-brand-black">
-          #{order.id.slice(0, 8)}
+          #{order.order_number}
         </Link>
       </td>
       <td className="px-4 py-3 text-sm">{order.customer_name}</td>

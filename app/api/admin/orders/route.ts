@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error?.message ?? 'Failed to create order' }, { status: 500 })
   }
 
-  const shortId = order.id.slice(0, 8)
+  const shortId = order.order_number
   const itemLines = (items as OrderItem[])
     .map((i) => `• ${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity} — ${i.price * i.quantity} грн`)
     .join('\n')

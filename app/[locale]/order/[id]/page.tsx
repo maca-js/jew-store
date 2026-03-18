@@ -50,7 +50,7 @@ export default async function OrderConfirmPage({ params }: PageProps) {
         <h1 className="font-serif text-3xl text-brand-black">{t.title}</h1>
         {order && (
           <p className="font-sans text-xs tracking-widest uppercase text-brand-muted">
-            {t.orderId} #{id.slice(0, 8).toUpperCase()}
+            {t.orderId} #{order.order_number}
           </p>
         )}
       </div>
@@ -119,7 +119,7 @@ export default async function OrderConfirmPage({ params }: PageProps) {
                   )}
                   <div className="flex justify-between items-center gap-4">
                     <span className="text-xs font-sans tracking-widest uppercase text-brand-muted flex-shrink-0">{t.referenceLabel}</span>
-                    <span className="font-mono text-sm">Legacy #{id.slice(0, 8).toUpperCase()}</span>
+                    <span className="font-mono text-sm">Legacy #{order.order_number}</span>
                   </div>
                   <div className="flex justify-between items-center gap-4">
                     <span className="text-xs font-sans tracking-widest uppercase text-brand-muted flex-shrink-0">{t.amountLabel}</span>

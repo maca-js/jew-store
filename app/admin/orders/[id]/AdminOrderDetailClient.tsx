@@ -50,7 +50,7 @@ export function AdminOrderDetailClient({ order }: Props) {
   }
 
   async function handleDelete() {
-    if (!confirm("Delete order #" + order.id.slice(0, 8) + "? This cannot be undone.")) return
+    if (!confirm("Delete order #" + order.order_number + "? This cannot be undone.")) return
     await fetch('/api/admin/orders', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

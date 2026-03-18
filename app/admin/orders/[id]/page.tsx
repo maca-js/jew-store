@@ -36,7 +36,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-3xl text-brand-black">
-          Order #{o.id.slice(0, 8).toUpperCase()}
+          Order #{o.order_number}
         </h1>
         <Link
           href="/admin/orders"

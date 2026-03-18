@@ -13,6 +13,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string
+  order_number: number
   customer_name: string
   email: string
   phone: string

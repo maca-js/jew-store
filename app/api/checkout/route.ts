@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
   console.log('items', items);
 
-  const shortId = order.id.slice(0, 8);
+  const shortId = order.order_number;
   const itemLines = (items as OrderItem[])
     .map((i) => `• ${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity} — ${i.price * i.quantity} грн`)
     .join('\n');
