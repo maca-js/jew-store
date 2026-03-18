@@ -32,6 +32,10 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
   const o = order as Order
 
+  const productIds = o.items.map((item) => item.product_id)
+  const { data: products } = await supabase.from('products').select('id, slug').in('id', productIds)
+  const slugMap = Object.fromEntries((products ?? []).map((p) => [p.id, p.slug]))
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between">
@@ -103,7 +107,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
       <div className="bg-brand-white p-6 space-y-4">
         <h2 className="text-xs font-sans tracking-widest uppercase text-brand-muted">Items</h2>
         {o.items.map((item, i) => (
-          <div key={i} className="flex gap-4 items-start pb-4 border-b border-brand-gray-dark last:border-0">
+          <Link key={i} href={`/uk/product/${slugMap[item.product_id]}`} className="flex gap-4 items-start pb-4 border-b border-brand-gray-dark last:border-0 hover:bg-brand-gray -mx-2 px-2 transition-colors rounded">
             {item.image && (
               <div className="relative w-12 h-16 bg-brand-gray flex-shrink-0">
                 <Image src={item.image} alt={item.name} fill className="object-cover" />
@@ -121,7 +125,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             <p className="font-sans text-sm">
               {(item.price * item.quantity).toLocaleString()} hrn
             </p>
-          </div>
+          </Link>
         ))}
         <div className="flex justify-between pt-2">
           <span className="text-xs font-sans tracking-widest uppercase text-brand-muted">Total</span>
