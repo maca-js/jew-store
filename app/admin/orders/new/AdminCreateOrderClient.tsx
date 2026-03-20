@@ -103,6 +103,7 @@ export function AdminCreateOrderClient() {
   const [email, setEmail] = useState('')
 
   // Delivery
+  const [deliveryType, setDeliveryType] = useState<'branch' | 'courier'>('branch')
   const [cityInput, setCityInput] = useState('')
   const [cityOptions, setCityOptions] = useState<NpOption[]>([])
   const [cityLoading, setCityLoading] = useState(false)
@@ -112,6 +113,8 @@ export function AdminCreateOrderClient() {
   const [branchOptions, setBranchOptions] = useState<NpOption[]>([])
   const [branchLoading, setBranchLoading] = useState(false)
   const [selectedBranch, setSelectedBranch] = useState('')
+  const [street, setStreet] = useState('')
+  const [house, setHouse] = useState('')
 
   // Product search
   const [productSearch, setProductSearch] = useState('')
@@ -249,8 +252,11 @@ export function AdminCreateOrderClient() {
           customer_name: name,
           email,
           phone,
+          delivery_type: deliveryType,
           delivery_city: selectedCity,
-          delivery_branch: selectedBranch,
+          delivery_branch: deliveryType === 'branch' ? selectedBranch : undefined,
+          delivery_street: deliveryType === 'courier' ? street : undefined,
+          delivery_house: deliveryType === 'courier' ? house : undefined,
           items,
           total,
           status,
@@ -301,6 +307,29 @@ export function AdminCreateOrderClient() {
       {/* Delivery */}
       <div className="bg-brand-white p-6 space-y-4">
         <h2 className="text-xs font-sans tracking-widest uppercase text-brand-muted">Delivery (Nova Post)</h2>
+
+        {/* Branch / Courier toggle */}
+        <div className="flex border border-brand-border">
+          {(['branch', 'courier'] as const).map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => {
+                setDeliveryType(type)
+                if (type === 'branch') { setStreet(''); setHouse('') }
+                else { setBranchInput(''); setSelectedBranch('') }
+              }}
+              className={`flex-1 px-4 py-3 text-sm font-sans transition-colors ${
+                deliveryType === type
+                  ? 'bg-brand-black text-brand-white'
+                  : 'bg-brand-white text-brand-black hover:bg-brand-gray'
+              }`}
+            >
+              {type === 'branch' ? 'Branch' : 'Courier'}
+            </button>
+          ))}
+        </div>
+
         <Autocomplete
           label="City"
           placeholder="Enter city..."
@@ -310,16 +339,42 @@ export function AdminCreateOrderClient() {
           onChange={(v) => { setCityInput(v); setSelectedCity(''); setSelectedCityRef('') }}
           onSelect={handleCitySelect}
         />
-        <Autocomplete
-          label="Branch"
-          placeholder={!selectedCityRef ? 'Select city first' : 'Select branch...'}
-          options={branchInput ? branchOptions.filter((o) => o.label.toLowerCase().includes(branchInput.toLowerCase())) : branchOptions}
-          loading={branchLoading}
-          value={branchInput}
-          onChange={(v) => { setBranchInput(v); setSelectedBranch('') }}
-          onSelect={handleBranchSelect}
-          disabled={!selectedCityRef}
-        />
+
+        {deliveryType === 'branch' ? (
+          <Autocomplete
+            label="Branch"
+            placeholder={!selectedCityRef ? 'Select city first' : 'Select branch...'}
+            options={branchInput ? branchOptions.filter((o) => o.label.toLowerCase().includes(branchInput.toLowerCase())) : branchOptions}
+            loading={branchLoading}
+            value={branchInput}
+            onChange={(v) => { setBranchInput(v); setSelectedBranch('') }}
+            onSelect={handleBranchSelect}
+            disabled={!selectedCityRef}
+          />
+        ) : (
+          <div className="flex gap-3">
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs font-sans tracking-widest uppercase text-brand-muted">Street</label>
+              <input
+                type="text"
+                value={street}
+                onChange={(e) => setStreet(e.target.value)}
+                placeholder="e.g. Khreshchatyk"
+                className="border border-brand-border px-4 py-3 text-sm font-sans focus:outline-none focus:border-brand-black"
+              />
+            </div>
+            <div className="w-32 flex flex-col gap-1">
+              <label className="text-xs font-sans tracking-widest uppercase text-brand-muted">House №</label>
+              <input
+                type="text"
+                value={house}
+                onChange={(e) => setHouse(e.target.value)}
+                placeholder="e.g. 12a"
+                className="border border-brand-border px-4 py-3 text-sm font-sans focus:outline-none focus:border-brand-black"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Items */}

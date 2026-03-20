@@ -14,13 +14,19 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const {
     customer_name, email, phone,
-    delivery_city, delivery_branch,
+    delivery_type, delivery_city, delivery_branch,
+    delivery_street, delivery_house,
     items, total, status, payment_method, admin_notes, source,
   } = body
 
   if (!customer_name || !phone || !items?.length) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
+
+  const isCourier = delivery_type === 'courier'
+  const delivery_address = isCourier
+    ? `${delivery_city ?? ''}, вул. ${delivery_street ?? ''}, ${delivery_house ?? ''}`
+    : `${delivery_city ?? ''}, ${delivery_branch ?? ''}`
 
   const db = createServerSupabase()
   const { data: order, error } = await db
@@ -29,10 +35,13 @@ export async function POST(request: NextRequest) {
       customer_name,
       email: email ?? '',
       phone,
-      delivery_address: `${delivery_city ?? ''}, ${delivery_branch ?? ''}`,
+      delivery_address,
       delivery_service: 'nova_post',
+      delivery_type: delivery_type ?? 'branch',
       delivery_city: delivery_city ?? '',
-      delivery_branch: delivery_branch ?? '',
+      delivery_branch: isCourier ? '' : (delivery_branch ?? ''),
+      delivery_street: isCourier ? (delivery_street ?? '') : null,
+      delivery_house: isCourier ? (delivery_house ?? '') : null,
       payment_method: payment_method ?? 'invoice',
       items: items as OrderItem[],
       total,
@@ -62,12 +71,16 @@ export async function POST(request: NextRequest) {
     .join('\n')
   const paymentLabel = (payment_method ?? 'invoice') === 'liqpay' ? 'LiqPay' : 'Рахунок-фактура'
 
+  const deliveryLine = isCourier
+    ? `${delivery_city ?? '—'}, вул. ${delivery_street ?? ''}, ${delivery_house ?? ''} (кур'єр)`
+    : `${delivery_city ?? '—'}, ${delivery_branch ?? '—'}`
+
   await sendTelegramMessage(
     `🛍 <b>Нове замовлення ${shortId} (адмін)</b>\n\n` +
       `👤 ${customer_name}\n` +
       `📞 ${phone}\n` +
       `📧 ${email ?? '—'}\n` +
-      `📦 ${delivery_city ?? '—'}, ${delivery_branch ?? '—'}\n\n` +
+      `📦 ${deliveryLine}\n\n` +
       `${itemLines}\n\n` +
       `💰 Разом: <b>${total} грн</b>\n` +
       `💳 Оплата: ${paymentLabel}`,
