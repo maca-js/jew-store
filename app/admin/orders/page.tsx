@@ -2,15 +2,26 @@ import Link from 'next/link'
 import { createServerSupabase } from '@/shared/api/supabaseServer'
 import { OrderRow } from '@/entities/order/ui/OrderRow'
 import type { Order } from '@/entities/order/model/types'
+import { Pagination } from '@/shared/ui/Pagination'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminOrdersPage() {
+const PAGE_SIZE = 10
+
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: { page?: string }
+}) {
+  const page = Math.max(1, Number(searchParams.page) || 1)
   const supabase = createServerSupabase()
-  const { data: orders } = await supabase
+  const { data: orders, count } = await supabase
     .from('orders')
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
+
+  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
   return (
     <div className="space-y-6">
@@ -59,6 +70,7 @@ export default async function AdminOrdersPage() {
           </p>
         )}
       </div>
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/admin/orders" />
     </div>
   )
 }

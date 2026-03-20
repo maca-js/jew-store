@@ -2,15 +2,26 @@ import { createServerSupabase } from '@/shared/api/supabaseServer'
 import type { Product } from '@/entities/product/model/types'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Pagination } from '@/shared/ui/Pagination'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminProductsPage() {
+const PAGE_SIZE = 10
+
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: { page?: string }
+}) {
+  const page = Math.max(1, Number(searchParams.page) || 1)
   const supabase = createServerSupabase()
-  const { data: products } = await supabase
+  const { data: products, count } = await supabase
     .from('products')
-    .select('*, category:categories(name_uk)')
+    .select('*, category:categories(name_uk)', { count: 'exact' })
     .order('created_at', { ascending: false })
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
+
+  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
   return (
     <div className="space-y-6">
@@ -75,6 +86,7 @@ export default async function AdminProductsPage() {
           </p>
         )}
       </div>
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/admin/products" />
     </div>
   )
 }
