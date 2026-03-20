@@ -19,8 +19,11 @@ export interface Order {
   phone: string
   delivery_address: string
   delivery_service: string
+  delivery_type: 'branch' | 'courier'
   delivery_city: string
   delivery_branch: string
+  delivery_street: string | null
+  delivery_house: string | null
   payment_method: PaymentMethod
   items: OrderItem[]
   total: number

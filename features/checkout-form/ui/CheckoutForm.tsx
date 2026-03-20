@@ -99,6 +99,12 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
     cityPh: locale === 'uk' ? 'Введіть місто...' : 'Enter city...',
     branch: locale === 'uk' ? 'Відділення *' : 'Branch *',
     branchPh: locale === 'uk' ? 'Оберіть відділення...' : 'Select branch...',
+    deliveryTypeBranch: locale === 'uk' ? 'Відділення' : 'Branch',
+    deliveryTypeCourier: locale === 'uk' ? "Кур'єр" : 'Courier',
+    street: locale === 'uk' ? 'Вулиця *' : 'Street *',
+    streetPh: locale === 'uk' ? 'напр. Хрещатик' : 'e.g. Khreshchatyk',
+    house: locale === 'uk' ? 'Будинок *' : 'House number *',
+    housePh: locale === 'uk' ? 'напр. 12а' : 'e.g. 12a',
     invoice: locale === 'uk' ? 'Оплата за рахунком (банківський переказ)' : 'Invoice (bank transfer)',
     cod: locale === 'uk' ? 'Накладний платіж (передплата)' : 'Cash on delivery (prepayment)',
     liqpay: locale === 'uk' ? 'LiqPay' : 'LiqPay',
@@ -111,12 +117,24 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
     customer_name: z.string().min(2),
     email: z.string().email().optional().or(z.literal('')),
     phone: z.string().regex(/^\d{9}$/, t.phoneInvalid),
+    delivery_type: z.enum(['branch', 'courier']),
     delivery_city: z.string().min(1),
     delivery_city_ref: z.string().min(1),
-    delivery_branch: z.string().min(1),
-    delivery_branch_ref: z.string().min(1),
+    delivery_branch: z.string().optional(),
+    delivery_branch_ref: z.string().optional(),
+    delivery_street: z.string().optional(),
+    delivery_house: z.string().optional(),
     payment_method: z.enum(['invoice', 'cod', 'liqpay']),
-  }), [t.phoneInvalid])
+  }).superRefine((data, ctx) => {
+    if (data.delivery_type === 'branch') {
+      if (!data.delivery_branch) ctx.addIssue({ code: 'custom', path: ['delivery_branch'], message: t.required })
+      if (!data.delivery_branch_ref) ctx.addIssue({ code: 'custom', path: ['delivery_branch_ref'], message: t.required })
+    }
+    if (data.delivery_type === 'courier') {
+      if (!data.delivery_street) ctx.addIssue({ code: 'custom', path: ['delivery_street'], message: t.required })
+      if (!data.delivery_house) ctx.addIssue({ code: 'custom', path: ['delivery_house'], message: t.required })
+    }
+  }), [t.phoneInvalid, t.required])
 
   type FormData = z.infer<typeof schema>
 
@@ -125,12 +143,15 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
     handleSubmit,
     control,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     mode: 'onChange',
-    defaultValues: { payment_method: 'invoice' },
+    defaultValues: { payment_method: 'invoice', delivery_type: 'branch' },
   })
+
+  const deliveryType = watch('delivery_type')
 
   // Nova Post city autocomplete
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -199,8 +220,11 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
         email: data.email,
         phone: `+380${data.phone}`,
         delivery_service: 'nova_post',
+        delivery_type: data.delivery_type,
         delivery_city: data.delivery_city,
-        delivery_branch: data.delivery_branch,
+        delivery_branch: data.delivery_type === 'branch' ? data.delivery_branch : undefined,
+        delivery_street: data.delivery_type === 'courier' ? data.delivery_street : undefined,
+        delivery_house: data.delivery_type === 'courier' ? data.delivery_house : undefined,
         payment_method: data.payment_method,
         items: items.map(item => ({
           product_id: item.product_id,
@@ -271,6 +295,41 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
           </select>
         </div>
 
+        {/* Delivery type toggle: Branch / Courier */}
+        <Controller
+          name="delivery_type"
+          control={control}
+          render={({ field }) => (
+            <div className="flex gap-0 border border-brand-border">
+              {(['branch', 'courier'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    field.onChange(type)
+                    // Clear opposite-mode fields
+                    if (type === 'branch') {
+                      setValue('delivery_street', '')
+                      setValue('delivery_house', '')
+                    } else {
+                      setBranchInput('')
+                      setValue('delivery_branch', '')
+                      setValue('delivery_branch_ref', '')
+                    }
+                  }}
+                  className={`flex-1 px-4 py-3 text-sm font-sans transition-colors ${
+                    field.value === type
+                      ? 'bg-brand-black text-brand-white'
+                      : 'bg-brand-white text-brand-black hover:bg-brand-gray'
+                  }`}
+                >
+                  {type === 'branch' ? t.deliveryTypeBranch : t.deliveryTypeCourier}
+                </button>
+              ))}
+            </div>
+          )}
+        />
+
         {/* Hidden fields for refs */}
         <input type="hidden" {...register('delivery_city_ref')} />
         <input type="hidden" {...register('delivery_branch_ref')} />
@@ -286,17 +345,46 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
           error={errors.delivery_city?.message || errors.delivery_city_ref?.message ? t.required : undefined}
         />
 
-        <Autocomplete
-          label={t.branch}
-          placeholder={!selectedCityRef ? (locale === 'uk' ? 'Спочатку оберіть місто' : 'Select city first') : t.branchPh}
-          options={branchInput ? branchOptions.filter(o => o.label.toLowerCase().includes(branchInput.toLowerCase())) : branchOptions}
-          loading={branchLoading}
-          value={branchInput}
-          onChange={(v) => { setBranchInput(v); setValue('delivery_branch', '', { shouldValidate: false }); setValue('delivery_branch_ref', '') }}
-          onSelect={handleBranchSelect}
-          disabled={!selectedCityRef}
-          error={errors.delivery_branch?.message || errors.delivery_branch_ref?.message ? t.required : undefined}
-        />
+        {deliveryType === 'branch' ? (
+          <Autocomplete
+            label={t.branch}
+            placeholder={!selectedCityRef ? (locale === 'uk' ? 'Спочатку оберіть місто' : 'Select city first') : t.branchPh}
+            options={branchInput ? branchOptions.filter(o => o.label.toLowerCase().includes(branchInput.toLowerCase())) : branchOptions}
+            loading={branchLoading}
+            value={branchInput}
+            onChange={(v) => { setBranchInput(v); setValue('delivery_branch', '', { shouldValidate: false }); setValue('delivery_branch_ref', '') }}
+            onSelect={handleBranchSelect}
+            disabled={!selectedCityRef}
+            error={errors.delivery_branch?.message ? t.required : undefined}
+          />
+        ) : (
+          <div className="flex gap-3">
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs font-sans tracking-widest uppercase text-brand-muted">{t.street}</label>
+              <input
+                type="text"
+                placeholder={t.streetPh}
+                className={`border px-4 py-3 text-sm font-sans focus:outline-none transition-colors ${
+                  errors.delivery_street ? 'border-red-400' : 'border-brand-border focus:border-brand-black'
+                }`}
+                {...register('delivery_street')}
+              />
+              {errors.delivery_street && <p className="text-xs text-red-500 font-sans">{t.required}</p>}
+            </div>
+            <div className="w-32 flex flex-col gap-1">
+              <label className="text-xs font-sans tracking-widest uppercase text-brand-muted">{t.house}</label>
+              <input
+                type="text"
+                placeholder={t.housePh}
+                className={`border px-4 py-3 text-sm font-sans focus:outline-none transition-colors ${
+                  errors.delivery_house ? 'border-red-400' : 'border-brand-border focus:border-brand-black'
+                }`}
+                {...register('delivery_house')}
+              />
+              {errors.delivery_house && <p className="text-xs text-red-500 font-sans">{t.required}</p>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Section 3: Payment */}

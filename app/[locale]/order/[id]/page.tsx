@@ -83,9 +83,16 @@ export default async function OrderConfirmPage({ params }: PageProps) {
               {order.delivery_city && (
                 <p className="text-sm font-sans text-brand-muted">{order.delivery_city}</p>
               )}
-              {order.delivery_branch && (
-                <p className="text-sm font-sans text-brand-muted">{order.delivery_branch}</p>
-              )}
+              {order.delivery_type === 'courier'
+                ? (order.delivery_street || order.delivery_house) && (
+                    <p className="text-sm font-sans text-brand-muted">
+                      вул. {order.delivery_street}, {order.delivery_house}
+                    </p>
+                  )
+                : order.delivery_branch && (
+                    <p className="text-sm font-sans text-brand-muted">{order.delivery_branch}</p>
+                  )
+              }
             </div>
           </div>
 

@@ -10,8 +10,11 @@ export async function POST(request: NextRequest) {
     email,
     phone,
     delivery_service,
+    delivery_type,
     delivery_city,
     delivery_branch,
+    delivery_street,
+    delivery_house,
     payment_method,
     items,
     total,
@@ -23,16 +26,24 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabase();
 
+  const isCourier = delivery_type === 'courier'
+  const delivery_address = isCourier
+    ? `${delivery_city}, вул. ${delivery_street}, ${delivery_house}`
+    : `${delivery_city}, ${delivery_branch}`
+
   const { data: order, error } = await supabase
     .from('orders')
     .insert({
       customer_name,
       email,
       phone,
-      delivery_address: `${delivery_city}, ${delivery_branch}`,
+      delivery_address,
       delivery_service: delivery_service ?? 'nova_post',
+      delivery_type: delivery_type ?? 'branch',
       delivery_city: delivery_city ?? '',
-      delivery_branch: delivery_branch ?? '',
+      delivery_branch: isCourier ? '' : (delivery_branch ?? ''),
+      delivery_street: isCourier ? (delivery_street ?? '') : null,
+      delivery_house: isCourier ? (delivery_house ?? '') : null,
       payment_method: payment_method ?? 'invoice',
       items: items as OrderItem[],
       total,
@@ -64,12 +75,16 @@ export async function POST(request: NextRequest) {
   const paymentLabels: Record<string, string> = { invoice: 'Рахунок-фактура', liqpay: 'LiqPay', cod: 'Накладний платіж (передплата)' }
   const paymentLabel = paymentLabels[payment_method ?? 'invoice'] ?? payment_method;
 
+  const deliveryLine = isCourier
+    ? `${delivery_city}, вул. ${delivery_street}, ${delivery_house} (кур'єр)`
+    : `${delivery_city}, ${delivery_branch}`
+
   await sendTelegramMessage(
     `🛍 <b>Нове замовлення ${shortId}</b>\n\n` +
       `👤 ${customer_name}\n` +
       `📞 ${phone}\n` +
       `📧 ${email}\n` +
-      `📦 ${delivery_city}, ${delivery_branch}\n\n` +
+      `📦 ${deliveryLine}\n\n` +
       `${itemLines}\n\n` +
       `💰 Разом: <b>${total} грн</b>\n` +
       `💳 Оплата: ${paymentLabel}`,

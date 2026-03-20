@@ -73,9 +73,14 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           </div>
           <div>
             <p className="text-xs font-sans tracking-widest uppercase text-brand-muted mb-1">Delivery</p>
-            <p>Nova Post</p>
+            <p>Nova Post {o.delivery_type === 'courier' ? '(Courier)' : '(Branch)'}</p>
             {o.delivery_city && <p className="text-brand-muted">{o.delivery_city}</p>}
-            {o.delivery_branch && <p className="text-brand-muted text-xs">{o.delivery_branch}</p>}
+            {o.delivery_type === 'courier'
+              ? (o.delivery_street || o.delivery_house) && (
+                  <p className="text-brand-muted text-xs">вул. {o.delivery_street}, {o.delivery_house}</p>
+                )
+              : o.delivery_branch && <p className="text-brand-muted text-xs">{o.delivery_branch}</p>
+            }
           </div>
           <div>
             <p className="text-xs font-sans tracking-widest uppercase text-brand-muted mb-1">Payment</p>
